@@ -1,0 +1,7 @@
+bin/
+obj/
+*.user
+.vs/
+appsettings.Development.json
+wwwroot/images/**
+!wwwroot/images/.gitkeep
