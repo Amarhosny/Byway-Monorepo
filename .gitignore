@@ -1,0 +1,22 @@
+﻿# Node.js
+**/node_modules/
+**/dist/
+**/coverage/
+
+# .NET
+**/bin/
+**/obj/
+
+# Local environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/secrets.json
+**/secrets.*.json
+
+# IDE and operating system
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
