@@ -1,4 +1,4 @@
-﻿# Node.js
+# Node.js
 **/node_modules/
 **/dist/
 **/coverage/
@@ -23,3 +23,15 @@
 .idea/
 .DS_Store
 Thumbs.db
+
+# Visual Studio
+.vs/
+**/.vs/
+
+# .NET build output
+**/bin/
+**/obj/
+
+# Node / Vite
+**/node_modules/
+**/dist/
