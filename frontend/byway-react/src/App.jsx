@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 
 import PublicLayout from './components/PublicLayout';
 import AdminLayout from './components/AdminLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -36,11 +37,14 @@ export default function App() {
               <Route path="/purchase-complete" element={<PurchaseComplete />} />
             </Route>
 
-            {/* Admin dashboard */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="instructors" element={<Instructors />} />
-              <Route path="courses" element={<AdminCourses />} />
+            {/* Every current and nested admin route requires an Admin session. */}
+            <Route element={<ProtectedRoute requiredRole="Admin" />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="instructors" element={<Instructors />} />
+                <Route path="courses" element={<AdminCourses />} />
+              </Route>
             </Route>
           </Routes>
         </BrowserRouter>

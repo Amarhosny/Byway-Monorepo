@@ -13,6 +13,9 @@
 !**/.env.example
 **/secrets.json
 **/secrets.*.json
+**/appsettings.Development.json
+**/appsettings.Local.json
+!**/appsettings.*.example.json
 
 # IDE and operating system
 .vs/

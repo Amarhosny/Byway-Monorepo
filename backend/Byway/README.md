@@ -50,27 +50,31 @@ If `dotnet build` reports errors, they are most likely one of:
 - A missing `using` or small typo in one file — nothing here is
   architecturally complex, so these should be quick fixes.
 
-## Database setup
+## Local configuration
 
-1. Set a real `SeedAdmin:Password` in `appsettings.Development.json` (already
-   scaffolded with a placeholder `Admin@12345` — change it). This file is
-   gitignored, so it never reaches source control.
-2. Set a real `Jwt:SigningKey` (32+ random characters) the same way.
-3. Create the initial migration and database:
+Use ASP.NET Core User Secrets for local-only values. From `backend/Byway`, initialize User Secrets for the API project, then replace the angle-bracket placeholders in these commands with values from your local environment. Do not commit those values.
 
 ```bash
-cd src/Byway.API
-dotnet tool install --global dotnet-ef   # if you don't have it already
-dotnet ef migrations add InitialCreate --project ../Byway.Infrastructure --startup-project .
-dotnet ef database update --project ../Byway.Infrastructure --startup-project .
+dotnet user-secrets init --project src/Byway.API
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=BywayDb;Username=<DB_USER>;Password=<DB_PASSWORD>" --project src/Byway.API
+dotnet user-secrets set "Jwt:SigningKey" "<GENERATE-A-RANDOM-KEY-AT-LEAST-32-BYTES>" --project src/Byway.API
+dotnet user-secrets set "Jwt:Issuer" "<LOCAL_ISSUER>" --project src/Byway.API
+dotnet user-secrets set "Jwt:Audience" "<LOCAL_AUDIENCE>" --project src/Byway.API
+dotnet user-secrets set "Jwt:ExpiryMinutes" "<MINUTES_FROM_1_TO_1440>" --project src/Byway.API
+dotnet user-secrets set "SeedAdmin:Password" "<LOCAL_ADMIN_PASSWORD>" --project src/Byway.API
 ```
 
-`Program.cs` also calls `EnsureCreatedAsync()` as a fallback for quick local
-runs — but once you have real migrations, prefer `dotnet ef database update`
-and consider removing the `EnsureCreatedAsync()` call (the two approaches
-don't mix well long-term: `EnsureCreated` bypasses the migrations table).
+Replace every angle-bracket placeholder before running its command. `Jwt:Issuer`, `Jwt:Audience`, and `Jwt:ExpiryMinutes` have non-secret local defaults in `appsettings.json`; the commands above let you override them locally. Set `SeedAdmin:Password` only if a seeded Admin account is needed.
 
-4. Run it:
+Initialize a fresh database, or apply pending migrations and seed data, with this one-shot command before starting the API:
+
+```bash
+dotnet run --project src/Byway.API -- --initialize-database
+```
+
+The initializer applies EF migrations first and seeds only after they succeed. Normal API startup does not migrate or seed the database.
+
+Run the API from `backend/Byway`:
 
 ```bash
 dotnet run --project src/Byway.API

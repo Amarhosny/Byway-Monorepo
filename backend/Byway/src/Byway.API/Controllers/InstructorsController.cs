@@ -14,9 +14,9 @@ public class InstructorsController : ControllerBase
     private readonly IInstructorService _instructorService;
     public InstructorsController(IInstructorService instructorService) => _instructorService = instructorService;
 
-    /// <summary>Public — used by the Top Instructors landing section and the browsing catalog. Admin's own management screen reuses this same endpoint plus search.</summary>
+    /// <summary>Admin-only management listing. The public landing page uses the separate top endpoint.</summary>
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize(Roles = IdentityRoles.Admin)]
     public async Task<IActionResult> GetPaged([FromQuery] string? search, [FromQuery] PaginationParams pagination, CancellationToken ct) =>
         Ok(await _instructorService.GetPagedAsync(search, pagination, ct));
 
@@ -26,7 +26,7 @@ public class InstructorsController : ControllerBase
         Ok(await _instructorService.GetTopAsync(count, ct));
 
     [HttpGet("{id:int}")]
-    [AllowAnonymous]
+    [Authorize(Roles = IdentityRoles.Admin)]
     public async Task<IActionResult> GetById(int id, CancellationToken ct) =>
         Ok(await _instructorService.GetByIdAsync(id, ct));
 

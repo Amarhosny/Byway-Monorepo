@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: '🏠', end: true },
@@ -8,6 +9,12 @@ const navItems = [
 
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="shell">
@@ -24,7 +31,7 @@ export default function AdminLayout() {
           </NavLink>
         ))}
         <div className="nav-sep" />
-        <div className="nav-item" onClick={() => navigate('/')}>↪ logout</div>
+        <div className="nav-item" onClick={handleLogout}>↪ logout</div>
       </div>
       <div className="main">
         <Outlet />

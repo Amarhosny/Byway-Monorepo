@@ -45,42 +45,33 @@ public class CourseRepository : ICourseRepository
         if (filter.MaxPrice.HasValue)
             query = query.Where(c => c.Cost <= filter.MaxPrice);
 
-        // Rating is computed, not stored, so filtering/sorting on it happens
-        // client-side (in-memory) after materializing the page candidates is
-        // NOT what we do — instead we filter/sort using the loaded Reviews
-        // navigation, which EF translates reasonably at this data scale.
-        // For a junior-scoped catalog this is an acceptable trade rather than
-        // a raw SQL AVG subquery, per the "avoid over-engineering" guidance.
+        // Apply the computed review average before counting and paging so the
+        // result count and page contents agree with the requested filter.
+
+        if (filter.MinRating.HasValue)
+        {
+            var minRating = (double)filter.MinRating.Value;
+            query = query.Where(c => c.Reviews.Any() && c.Reviews.Average(r => (double)r.Rating) >= minRating);
+        }
 
         var total = await query.CountAsync(ct);
 
         query = filter.SortBy?.ToLowerInvariant() switch
         {
             "price" => query.OrderBy(c => c.Cost),
+            "rating" => query.OrderByDescending(c => c.Reviews.Any()
+                ? c.Reviews.Average(r => (double)r.Rating)
+                : 0d),
             "latest" => query.OrderByDescending(c => c.CreatedAt),
             _ => query.OrderByDescending(c => c.CreatedAt)
         };
 
-        var candidates = await query
+        var items = await query
             .Skip((pagination.PageNumber - 1) * pagination.PageSize)
             .Take(pagination.PageSize)
             .ToListAsync(ct);
 
-        if (filter.MinRating.HasValue)
-        {
-            candidates = candidates
-                .Where(c => c.Reviews.Count > 0 && (decimal)c.Reviews.Average(r => r.Rating) >= filter.MinRating.Value)
-                .ToList();
-        }
-
-        if (filter.SortBy?.ToLowerInvariant() == "rating")
-        {
-            candidates = candidates
-                .OrderByDescending(c => c.Reviews.Count == 0 ? 0 : c.Reviews.Average(r => r.Rating))
-                .ToList();
-        }
-
-        return PagedResult<Course>.Create(candidates, total, pagination.PageNumber, pagination.PageSize);
+        return PagedResult<Course>.Create(items, total, pagination.PageNumber, pagination.PageSize);
     }
 
     public Task<Course?> GetByIdWithDetailsAsync(int id, CancellationToken ct = default) =>

@@ -3,6 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>2f5b0adf-82b6-445d-9aa1-e4ecf01bd71b</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Byway.Application\Byway.Application.csproj" />

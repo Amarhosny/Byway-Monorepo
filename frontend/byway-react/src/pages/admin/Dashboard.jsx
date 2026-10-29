@@ -1,40 +1,63 @@
+import { useCallback, useEffect, useState } from 'react';
+import { apiRequest } from '../../api/request';
+import { useAuth } from '../../context/AuthContext';
+
+function sanitizeDiagnosticMessage(message) {
+  return String(message || 'Unknown dashboard request error.')
+    .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\b/g, '[redacted JWT]')
+    .replace(/\b(password|secret|signingkey|connectionstring|token)\b\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]')
+    .slice(0, 240);
+}
+
 export default function Dashboard() {
-  return (
-    <>
-      <div className="topbar"><h1>Dashboard</h1><div className="bell" /></div>
-      <hr className="rule" />
+  const { token } = useAuth();
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await apiRequest('/api/admin/dashboard', { token });
+      const fields = ['instructorCount', 'categoryCount', 'courseCount', 'enrollmentsThisMonth'];
+      if (!data || fields.some((field) => !Number.isFinite(data[field]))) {
+        throw new Error('The dashboard API returned an unexpected response.');
+      }
+      setDashboard(data);
+    } catch (requestError) {
+      if (import.meta.env.DEV) {
+        console.warn('[Byway dashboard diagnostic]', {
+          tokenPresent: Boolean(token),
+          status: Number.isInteger(requestError.status) ? requestError.status : null,
+          message: sanitizeDiagnosticMessage(requestError.message),
+        });
+      }
+      setDashboard(null);
+      setError(requestError.message || 'Unable to load the dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  return <>
+    <div className="topbar"><h1>Dashboard</h1><div className="bell" /></div><hr className="rule" />
+    {error && <div><p role="alert" style={{ color: 'var(--red)' }}>{error}</p><button type="button" className="btn btn-dark" onClick={loadDashboard} disabled={loading}>{loading ? 'Retrying…' : 'Retry'}</button></div>}
+    {loading ? <p>Loading dashboard…</p> : dashboard && <>
       <div className="stat-row">
-        <div className="stat-card"><div><div className="num">50</div><div className="lbl">Instructors</div></div><div className="stat-ic">👤</div></div>
-        <div className="stat-card"><div><div className="num">10</div><div className="lbl">Categories</div></div><div className="stat-ic">📄</div></div>
-        <div className="stat-card"><div><div className="num">36</div><div className="lbl">Courses</div></div><div className="stat-ic">📁</div></div>
+        {[
+          ['Instructors', dashboard.instructorCount],
+          ['Categories', dashboard.categoryCount],
+          ['Courses', dashboard.courseCount],
+          ['Enrollments this month', dashboard.enrollmentsThisMonth],
+        ].map(([label, value]) => <div className="stat-card" key={label}><div><div className="num">{value}</div><div className="lbl">{label}</div></div></div>)}
       </div>
-      <div className="panel-row">
-        <div className="panel">
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0 }}>Wallet</h3>
-            <span className="btn btn-ghost" style={{ padding: '6px 12px' }}>This month</span>
-          </div>
-          <div className="wallet-num">$37.5K</div>
-          <div style={{ color: 'var(--ink-soft)', fontSize: 13.5 }}>
-            Wallet Balance <span style={{ color: 'var(--green)' }}>▲ +2.45%</span>
-          </div>
-          <div className="pill-ok">✅ On your account</div>
-          <div className="chart-wave" />
-          <div className="legend">
-            <span><span className="sw" style={{ background: 'var(--purple)' }} />Deposits</span>
-            <span><span className="sw" style={{ background: '#7fd1ff' }} />Withdrawals</span>
-          </div>
-        </div>
-        <div className="panel">
-          <h3 style={{ margin: 0 }}>Statistics</h3>
-          <div className="pie" />
-          <div className="stat-legend">
-            <div><span className="sw" style={{ background: 'var(--purple)' }} />Instructors<b>60%</b></div>
-            <div><span className="sw" style={{ background: '#7fd1ff' }} />Categories<b>20%</b></div>
-            <div><span className="sw" style={{ background: '#d9def7' }} />Courses<b>20%</b></div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+      <div className="panel"><h3>Monthly enrollments</h3><p>{dashboard.enrollmentsThisMonth} course enrollments on paid orders this calendar month.</p><p style={{ color: 'var(--ink-soft)', fontSize: 13 }}>Revenue and wallet balances are not provided by the current API.</p></div>
+    </>}
+  </>;
 }

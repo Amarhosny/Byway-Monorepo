@@ -1,4 +1,3 @@
-using Byway.Domain.Entities;
 using Byway.Infrastructure.Identity;
 using Byway.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -8,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Byway.Infrastructure.Seed;
 
 /// <summary>
-/// Seeds Identity roles, a default Admin account, and reference Categories.
-/// Call SeedAsync once at startup (see API's Program.cs).
+/// Seeds Identity roles, a default Admin account, and sample catalog data.
+/// Call SeedAsync from the one-shot database initialization mode after migrations succeed.
 ///
 /// Admin credentials come from configuration (appsettings.Development.json
 /// or environment variables), never hardcoded here — see README for the
@@ -22,11 +21,10 @@ public static class DbSeeder
     public static async Task SeedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureCreatedAsync(); // for quick local runs without migrations; prefer `dotnet ef database update` once migrations exist
 
         await SeedRolesAsync(services);
         await SeedAdminAsync(services);
-        await SeedCategoriesAsync(db);
+        await SampleCatalogSeeder.SeedAsync(db);
     }
 
     private static async Task SeedRolesAsync(IServiceProvider services)
@@ -73,18 +71,4 @@ public static class DbSeeder
             await userManager.AddToRoleAsync(admin, IdentityRoles.Admin);
     }
 
-    private static async Task SeedCategoriesAsync(AppDbContext db)
-    {
-        if (db.Categories.Any())
-            return;
-
-        db.Categories.AddRange(
-            new Category { Name = "Fullstack" },
-            new Category { Name = "Backend" },
-            new Category { Name = "Frontend" },
-            new Category { Name = "UX/UI Design" }
-        );
-
-        await db.SaveChangesAsync();
-    }
 }
